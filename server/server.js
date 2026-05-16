@@ -4,6 +4,9 @@ import cors from "cors";
 import 'dotenv/config';
 import cookieParser from "cookie-parser";
 import session from "express-session";
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import passport from "./config/passport.js";
 import jwt from 'jsonwebtoken';
 import connectDB from "./config/mongodb.js";
@@ -20,10 +23,21 @@ const app = express();
 const port = process.env.PORT || process.env.port || 4000;
 connectDB();
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const frontendBuildCandidates = [
+    path.resolve(__dirname, '../Frontend/build'),
+    path.resolve(__dirname, '../Frontend/dist')
+];
+const frontendBuildPath = frontendBuildCandidates.find(candidate => fs.existsSync(candidate));
+const frontendIndexPath = frontendBuildPath ? path.join(frontendBuildPath, 'index.html') : null;
+
 // CORS configuration for both development and production
 const allowedOrigins = [
     'http://localhost:3000',
     'https://hour-glass-1.onrender.com',
+    process.env.RENDER_EXTERNAL_URL,
     process.env.FRONTEND_URL
 ].filter(Boolean);
 
@@ -46,12 +60,19 @@ app.use(cors(corsOptions));
 app.use(express.json());
 app.use(cookieParser());
 
+if (process.env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1);
+}
+
 // Session middleware (required for passport)
 app.use(session({
     secret: process.env.SESSION_SECRET || 'keyboard cat',
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: false }, // set secure: true if using https
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+    }
 }));
 app.use(passport.initialize());
 app.use(passport.session());
@@ -59,7 +80,7 @@ app.use(passport.session());
 
 
 // Google OAuth2 routes
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+const FRONTEND_URL = process.env.RENDER_EXTERNAL_URL || process.env.FRONTEND_URL || 'http://localhost:3000';
 app.get('/api/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
 app.get('/api/auth/google/callback',
@@ -103,5 +124,16 @@ app.get('/api/auth/google/success', (req, res) => {
 
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/brainstorm", brainstormRoutes);
+
+if (frontendBuildPath) {
+    app.use(express.static(frontendBuildPath));
+    app.get(/^\/(?!api).*/, (req, res, next) => {
+        if (req.method !== 'GET') return next();
+        if (frontendIndexPath && fs.existsSync(frontendIndexPath)) {
+            return res.sendFile(frontendIndexPath);
+        }
+        return next();
+    });
+}
 
 app.listen(port, ()=> console.log(`Server started on PORT: ${port} `));

@@ -95,4 +95,12 @@ Open the frontend (usually at `http://localhost:3000`) and point the frontend to
 **Testing & Linting**
 - Check `package.json` files in `Frontend/`, `server/`, and `winapp/` for scripts like `test`, `lint`, or `format`.
 
+**Render Deployment**
+- Deploy the backend as a single Render Web Service and let it serve the built frontend from `Frontend/build`.
+- Set the service root directory to `server`.
+- Build command: `cd ../Frontend && npm install && npm run build`
+- Start command: `npm start`
+- Required environment variables on Render: `MONGODB_URL`, `JWT_SECRET`, `SESSION_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CALLBACK_URL`, `FRONTEND_URL`, `SENDER_EMAIL`, `BREVO_API_KEY`, `GROQ_API_KEY`.
+- Set `FRONTEND_URL` and `GOOGLE_CALLBACK_URL` to your public Render URL, for example `https://hour-glass.onrender.com` and `https://hour-glass.onrender.com/api/auth/google/callback`.
+
 
