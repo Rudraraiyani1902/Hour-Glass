@@ -1,17 +1,17 @@
-import OpenAI from "openai";
 import ClassificationRule from "../models/classificationRule.model.js";
 import { normalizeAppName } from "../utils/nameNormalizer.js";
-
-// Initialize Groq
-const client = new OpenAI({
-  apiKey: process.env.GROQ_API_KEY,
-  baseURL: "https://api.groq.com/openai/v1",
-});
 
 /**
  * Calls the Groq API to get a classification for an ambiguous app.
  */
 async function getAIClassification(activity, normalizedName) {
+  const GROQ_KEY = process.env.GROQ_API_KEY;
+  if (!GROQ_KEY) {
+    console.warn('[Classification] No GROQ_API_KEY; returning ambiguous');
+    return 'ambiguous';
+  }
+
+  const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.1-70b-versatile';
   const prompt = `
     You are a productivity expert. Classify the following computer activity as "billable" or "non-billable" based on the application name and window title.
     - "billable" means professional work (coding, design, client email, documentation, etc.).
@@ -24,15 +24,31 @@ async function getAIClassification(activity, normalizedName) {
   `;
 
   try {
-    const completion = await client.chat.completions.create({
-      model: "llama-3.1-70b-versatile",
-      messages: [
-        { role: "system", content: "You are a productivity expert that classifies computer activities." },
-        { role: "user", content: prompt },
-      ],
+    const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${GROQ_KEY}`
+      },
+      body: JSON.stringify({
+        model: GROQ_MODEL,
+        messages: [
+          { role: 'system', content: 'You are a productivity expert that classifies computer activities.' },
+          { role: 'user', content: prompt },
+        ],
+        temperature: 0.2,
+        max_tokens: 50
+      })
     });
 
-    const raw = completion.choices[0].message.content.trim().toLowerCase();
+    if (!resp.ok) {
+      const errText = await resp.text();
+      console.error('[Classification] Groq API error:', resp.status, errText);
+      return 'ambiguous';
+    }
+
+    const json = await resp.json();
+    const raw = (json?.choices?.[0]?.message?.content || '').trim().toLowerCase();
     // For debugging: log AI outputs for first-time apps (comment out in prod)
     // console.debug('[AI] raw classification output for', normalizedName, ':', raw);
 
@@ -76,8 +92,7 @@ async function getAIClassification(activity, normalizedName) {
     return classification;
 
   } catch (err) {
-    console.error("Error calling Groq API:", err);
-    // Don't default to non-billable on error — mark ambiguous so higher-level logic can fall back or handle it.
+    console.error("Error calling Groq API:", err.message);
     return 'ambiguous';
   }
 }
@@ -113,7 +128,6 @@ export const classifyActivity = async (activity) => {
     return await getAIClassification(activity, normalizedName);
   } catch (error) {
     console.error('[ClassificationService] Error during classification:', error.message);
-    // On any database or other unexpected error, default to non-billable
-    return 'non-billable';
+    return 'ambiguous';
   }
 };
