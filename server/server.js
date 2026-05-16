@@ -21,7 +21,6 @@ import brainstormRoutes from './routes/brainstormRoutes.js';
 
 const app = express();
 const port = process.env.PORT || process.env.port || 4000;
-connectDB();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -136,4 +135,14 @@ if (frontendBuildPath) {
     });
 }
 
-app.listen(port, ()=> console.log(`Server started on PORT: ${port} `));
+const startServer = async () => {
+    try {
+        await connectDB();
+        app.listen(port, () => console.log(`Server started on PORT: ${port} `));
+    } catch (error) {
+        console.error('Failed to start server:', error.message);
+        process.exit(1);
+    }
+};
+
+startServer();

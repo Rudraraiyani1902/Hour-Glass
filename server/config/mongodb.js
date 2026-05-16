@@ -3,7 +3,15 @@ import mongoose from "mongoose";
 const connectDB = async()=>{
 
     mongoose.connection.on('connected', ()=>console.log("DataBase Connected"));
-    await mongoose.connect(`${process.env.MONGODB_URL}/Loginpage`);
+  const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URL;
+
+  if (!mongoUri) {
+    throw new Error('Missing MongoDB connection string. Set MONGO_URI or MONGODB_URL.');
+  }
+
+  await mongoose.connect(mongoUri, {
+    dbName: process.env.MONGO_DB_NAME || 'Loginpage'
+  });
 };
 
 export default connectDB;
