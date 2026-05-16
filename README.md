@@ -104,4 +104,10 @@ Open the frontend (usually at `http://localhost:3000`) and point the frontend to
 - Optional MongoDB database name override: `MONGO_DB_NAME`.
 - Set `FRONTEND_URL` and `GOOGLE_CALLBACK_URL` to your public Render URL, for example `https://hour-glass.onrender.com` and `https://hour-glass.onrender.com/api/auth/google/callback`.
 
+**Vercel Frontend**
+- Set `REACT_APP_API_URL` in Vercel to your Render backend URL, for example `https://hour-glass.onrender.com`.
+- Set `REACT_APP_API_URL` in Vercel to your Render backend URL, for example `https://hour-glass.onrender.com`.
+- Set `FRONTEND_URL` in Render to your Vercel site URL: `https://hour-glass-three.vercel.app`.
+- Set `GOOGLE_CALLBACK_URL` in Render to the backend callback URL: `https://hour-glass.onrender.com/api/auth/google/callback`.
+
 

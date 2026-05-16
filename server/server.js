@@ -79,7 +79,7 @@ app.use(passport.session());
 
 
 // Google OAuth2 routes
-const FRONTEND_URL = process.env.RENDER_EXTERNAL_URL || process.env.FRONTEND_URL || 'http://localhost:3000';
+const FRONTEND_URL = process.env.FRONTEND_URL || process.env.RENDER_EXTERNAL_URL || 'https://hour-glass-three.vercel.app';
 app.get('/api/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
 app.get('/api/auth/google/callback',
