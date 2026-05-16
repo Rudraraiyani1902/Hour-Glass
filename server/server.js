@@ -137,11 +137,12 @@ if (frontendBuildPath) {
 
 const startServer = async () => {
     try {
-        await connectDB();
+        connectDB().catch((error) => {
+            console.error('MongoDB connection failed:', error.message);
+        });
         app.listen(port, () => console.log(`Server started on PORT: ${port} `));
     } catch (error) {
         console.error('Failed to start server:', error.message);
-        process.exit(1);
     }
 };
 
