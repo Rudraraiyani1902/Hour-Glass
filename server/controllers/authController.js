@@ -57,10 +57,10 @@ export const sendOtp = async (req, res) => {
         };
         try {
             const info = await transporter.sendMail(mailOptions);
-            // If using JSON fallback transport, log the generated message
-            if (transporter && transporter.transportMode && transporter.transportMode !== 'brevo') {
-                console.log('[sendOtp] transportMode=', transporter.transportMode, 'send info=', info);
-            }
+            // Always log send info for diagnostics
+            try {
+                console.log('[sendOtp] transportMode=', transporter && transporter.transportMode, 'send info=', info);
+            } catch (e) {}
             console.log(`OTP sent successfully to ${emailLower}`);
         } catch (mailErr) {
             console.error('[sendOtp] transporter.sendMail failed:', mailErr && mailErr.message ? mailErr.message : mailErr);
@@ -338,6 +338,7 @@ export const mailStatus = async (req, res) => {
         const hasKey = !!(process.env.BREVO_API_KEY || process.env.BREVO_API);
         const hasSender = !!process.env.SENDER_EMAIL;
         const transporterPresent = !!transporter;
+        const transportMode = transporter && transporter.transportMode ? transporter.transportMode : 'unknown';
 
         const maskEmail = (e) => {
             if (!e) return '';
@@ -352,6 +353,7 @@ export const mailStatus = async (req, res) => {
         return res.json({
             success: true,
             transporterPresent,
+            transportMode,
             hasKey,
             hasSender,
             senderMasked: hasSender ? maskEmail(process.env.SENDER_EMAIL) : ''
