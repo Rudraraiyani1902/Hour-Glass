@@ -324,3 +324,32 @@ export const resetPassword = async(req, res) =>{
     }
 
 }
+
+// Debug: return mail configuration status (no secrets)
+export const mailStatus = async (req, res) => {
+    try {
+        const hasKey = !!(process.env.BREVO_API_KEY || process.env.BREVO_API);
+        const hasSender = !!process.env.SENDER_EMAIL;
+        const transporterPresent = !!transporter;
+
+        const maskEmail = (e) => {
+            if (!e) return '';
+            const parts = e.split('@');
+            if (parts.length !== 2) return '***';
+            const local = parts[0];
+            const domain = parts[1];
+            const visible = local.length > 0 ? local[0] : '*';
+            return `${visible}***@${domain}`;
+        };
+
+        return res.json({
+            success: true,
+            transporterPresent,
+            hasKey,
+            hasSender,
+            senderMasked: hasSender ? maskEmail(process.env.SENDER_EMAIL) : ''
+        });
+    } catch (error) {
+        return res.status(500).json({ success: false, message: 'Debug check failed' });
+    }
+}
