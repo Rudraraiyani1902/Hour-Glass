@@ -56,11 +56,18 @@ export const sendOtp = async (req, res) => {
             text: `Your OTP is ${otp}. It is valid for 10 minutes.`
         };
         try {
-            await transporter.sendMail(mailOptions);
+            const info = await transporter.sendMail(mailOptions);
+            // If using JSON fallback transport, log the generated message
+            if (transporter && transporter.transportMode && transporter.transportMode !== 'brevo') {
+                console.log('[sendOtp] transportMode=', transporter.transportMode, 'send info=', info);
+            }
             console.log(`OTP sent successfully to ${emailLower}`);
         } catch (mailErr) {
             console.error('[sendOtp] transporter.sendMail failed:', mailErr && mailErr.message ? mailErr.message : mailErr);
-            return res.status(500).json({ success: false, message: 'Failed to send OTP email' });
+            if (mailErr && mailErr.stack) console.error(mailErr.stack);
+            // Return a clearer error for debugging; in production we keep generic message
+            const isProd = process.env.NODE_ENV === 'production';
+            return res.status(500).json({ success: false, message: isProd ? 'Failed to send OTP email' : `Failed to send OTP email: ${mailErr && mailErr.message ? mailErr.message : String(mailErr)}` });
         }
         return res.json({ success: true, message: 'OTP sent to your email.' });
     } catch (error) {
