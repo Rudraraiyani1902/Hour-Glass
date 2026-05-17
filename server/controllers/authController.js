@@ -8,6 +8,21 @@ export const sendOtp = async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ success: false, message: 'Email is required' });
     try {
+        // Debug: log request metadata to help diagnose 500 errors (do not log secrets)
+        try {
+            const origin = (req.headers && (req.headers.origin || req.headers.referer)) || 'none';
+            console.log(`[sendOtp] path=${req.path} method=${req.method} origin=${origin} content-type=${req.headers['content-type']}`);
+            console.log(`[sendOtp] body.email present=${!!email}`);
+        } catch (e) {}
+
+        // Ensure mailer is available - fail fast with a clear message if not
+        if (!transporter) {
+            console.error('[sendOtp] Mail transporter not configured');
+            return res.status(500).json({ success: false, message: 'Mail service not configured' });
+        }
+        if (!process.env.SENDER_EMAIL) {
+            console.warn('[sendOtp] SENDER_EMAIL env not set');
+        }
         const emailLower = String(email).trim().toLowerCase().replace(/[\s,;]+$/g, '').replace(/[;,]/g,'');
         // Check if user already exists
         const existingUser = await userModel.findOne({ email: emailLower });
@@ -40,8 +55,13 @@ export const sendOtp = async (req, res) => {
             subject: 'Your OTP for Registration',
             text: `Your OTP is ${otp}. It is valid for 10 minutes.`
         };
-        await transporter.sendMail(mailOptions);
-        console.log(`OTP sent successfully to ${emailLower}`);
+        try {
+            await transporter.sendMail(mailOptions);
+            console.log(`OTP sent successfully to ${emailLower}`);
+        } catch (mailErr) {
+            console.error('[sendOtp] transporter.sendMail failed:', mailErr && mailErr.message ? mailErr.message : mailErr);
+            return res.status(500).json({ success: false, message: 'Failed to send OTP email' });
+        }
         return res.json({ success: true, message: 'OTP sent to your email.' });
     } catch (error) {
         console.error('Error in sendOtp:', error);
