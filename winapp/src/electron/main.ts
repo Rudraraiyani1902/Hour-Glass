@@ -2,7 +2,6 @@ import { app, BrowserWindow, ipcMain, session } from "electron";
 
 import * as path from "node:path";
 import * as fs from "node:fs";
-import activeWin from 'active-win';
 import { FileStorageManager } from './fileStorage';
 import * as https from 'node:https';
 
@@ -92,6 +91,20 @@ export class SystemResourceMonitor {
   private currentWindow: { title: string; owner: { name: string } } | null = null;
   private monitorInterval: NodeJS.Timeout | null = null;
 
+	// active-win is optional to keep Windows packaging working without node-gyp.
+	// If it cannot be loaded, we gracefully fall back to a placeholder window.
+	private async loadActiveWin(): Promise<((...args: any[]) => Promise<any>) | null> {
+		try {
+			const dynamicImport = new Function('specifier', 'return import(specifier);') as (specifier: string) => Promise<any>;
+			const mod = await dynamicImport('active-win');
+			const fn = (mod as any).default ?? mod;
+			return typeof fn === 'function' ? fn : null;
+		} catch (err) {
+			console.warn('[TimeTracker] active-win unavailable, using fallback monitor:', String(err));
+			return null;
+		}
+	}
+
   public startMonitoring(intervalMs: number = 100) {
 	emitRendererLog('[TimeTracker] SystemResourceMonitor started');
 
@@ -114,7 +127,12 @@ export class SystemResourceMonitor {
 
   private async setActiveWindowInfo() {
     try {
-      const result = await activeWin();
+			const activeWin = await this.loadActiveWin();
+			if (!activeWin) {
+				return { title: 'Unknown', owner: { name: 'Unknown' } };
+			}
+
+			const result = await activeWin();
       return result ?? { title: "Unknown", owner: { name: "Unknown" } };
     } catch (err) {
       console.error("Error fetching active window:", err);

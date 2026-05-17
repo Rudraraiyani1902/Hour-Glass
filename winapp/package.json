@@ -36,12 +36,12 @@
     "build": "cd ../Frontend && npm run build && cd ../winapp && npm run sync-frontend && npm run transpile:electron",
     "start": "cross-env NODE_ENV=production electron .",
     "dist:win": "npm run build && electron-builder --win --x64",
+    "dist:dir": "npm run build && electron-builder --win --x64 --dir",
     "test": "vitest",
     "test:coverage": "vitest run --coverage",
     "mutation": "stryker run"
   },
   "dependencies": {
-    "active-win": "^8.2.1",
     "os-utils": "^0.0.14",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
@@ -53,7 +53,6 @@
     "@stryker-mutator/vitest-runner": "^9.4.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.0.0",
-    "@types/active-win": "^4.0.0",
     "@types/os-utils": "^0.0.4",
     "@types/react": "^19.1.13",
     "@types/react-dom": "^19.1.9",

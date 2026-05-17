@@ -1,0 +1,41 @@
+name: Build Windows Electron App
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install Frontend dependencies
+        working-directory: Frontend
+        run: npm ci
+
+      - name: Install winapp dependencies
+        working-directory: winapp
+        run: npm ci
+
+      - name: Build Windows package
+        working-directory: winapp
+        run: npm run dist:win
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: hourglass-windows-build
+          path: |
+            winapp/build/**
+            winapp/build/*.exe
